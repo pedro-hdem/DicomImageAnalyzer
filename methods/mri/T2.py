@@ -8,6 +8,7 @@ from tkinter import filedialog
 import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import Canvas
+import matplotlib.patches as patches
 
 # Herramienta para abrir imagen y guardar su directorio
 def openImg():
@@ -33,6 +34,29 @@ def verificarDatos(longitud):
     T2cuadradoButton = tk.Button(ventanaMetodos, text="Calcular T2/nROI cuadrado", command=lambda: ajusteROI(longitud))
     T2cuadradoButton.pack()
 
+def tryRoi(X, Y, radio):
+    global file_path
+    ventanaROI = tk.Toplevel()
+    ventanaROI.title("Prueba ROI")
+    canvas_grf = Canvas(ventanaROI, width=400, height=400)
+    canvas_grf.pack()
+
+    img = dicom.dcmread(file_path)
+    imagenReescalada = img.RescaleSlope * img.pixel_array
+    fig, ax = plt.subplots()
+    plt.axis('off')
+    ax.imshow(imagenReescalada, cmap=plt.cm.bone)
+    canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas_grf)
+    canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    # Crea un rectángulo que representa el cuadrado
+    rect = patches.Rectangle(
+        (X - radio, Y - radio),
+        2 * radio, 2 * radio,
+        linewidth=2, edgecolor='yellow', facecolor='none'
+    )
+    ax.add_patch(rect)
+
 def ajusteROI(longitud):
 # Limpiamos y reajustamos la interfaz.
     T2cuadradoButton.pack_forget()
@@ -54,6 +78,9 @@ def ajusteROI(longitud):
     radio_entry = tk.Entry(ventanaMetodos)
     radio_entry.pack()
 
+    tryROI = tk.Button(ventanaMetodos, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+    tryROI.pack()
+    
     # Botón para confirmar ROI:
     addDatos = tk.Button(ventanaMetodos, text="Confirmar", command=lambda: calcT2SquareROI(longitud, int(centro_x_entry.get()),
                                                                                             int(centro_y_entry.get()), int(radio_entry.get())))
@@ -61,6 +88,9 @@ def ajusteROI(longitud):
 
 # Cálculo de T2 para una ROI cuadrada de radio y centro variables
 def calcT2SquareROI(no_tomas, X, Y, radio):
+    global file_path
+    file_name = os.path.basename(file_path)
+    firstNum = int(file_name[4:7])
     listaTE = [];
     listaValoresT2 = [];
     offsetT2 = 0.1;
@@ -68,8 +98,8 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
     # Matriz para almacenar las sumas de intensidades en el ROI a lo largo de 100 imágenes
     sumas_intensidades = np.zeros(no_tomas, dtype=np.float64)    
 
-    for i in range(1, no_tomas + 1):
-        imageFileName = f"/MRIm{i:03d}.dcm"
+    for i in range(0, no_tomas):
+        imageFileName = f"/MRIm{(i+firstNum):03d}.dcm"
         img = dicom.dcmread(directorio + imageFileName)
         imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
 
@@ -87,7 +117,7 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
         roi = imagenReescalada[y_start:y_end, x_start:x_end]
 
         # Calcular la suma de intensidades en la ROI y almacenarla en el array sumas_intensidades
-        sumas_intensidades[i - 1] = np.mean(roi)
+        sumas_intensidades[i] = np.mean(roi)
 
         # Guardamos los tiempos de Eco para calcular T2.
         listaTE.append(img.EchoTime)
