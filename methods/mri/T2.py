@@ -134,27 +134,28 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
     plt.ylabel('Intensidad Media')
     plt.show()
 
-# Ventana para métodos
-ventanaMetodos = tk.Tk()
-ventanaMetodos.title("Análisis T2")
-ventanaMetodos.geometry("250x150")
+def main():
+    # Ventana para métodos
+    ventanaMetodos = tk.Tk()
+    ventanaMetodos.title("Análisis T2")
+    ventanaMetodos.geometry("250x150")
 
-file_path = ''  
+    file_path = ''  
 
-abrirImagen = tk.Button(ventanaMetodos, text="Cargar Primera imagen", command=openImg)
-abrirImagen.pack()
+    abrirImagen = tk.Button(ventanaMetodos, text="Cargar Primera imagen", command=openImg)
+    abrirImagen.pack()
 
-# Etiqueta para mostrar la ruta del archivo
-pathText = tk.Label(ventanaMetodos, text="")
-pathText.pack()
+    # Etiqueta para mostrar la ruta del archivo
+    pathText = tk.Label(ventanaMetodos, text="")
+    pathText.pack()
 
-logitudText = tk.Label(ventanaMetodos, text="Longitud de la serie de T2:")
-logitudText.pack()
-longitudEntry = tk.Entry(ventanaMetodos)
-longitudEntry.pack()
+    logitudText = tk.Label(ventanaMetodos, text="Longitud de la serie de T2:")
+    logitudText.pack()
+    longitudEntry = tk.Entry(ventanaMetodos)
+    longitudEntry.pack()
 
-addDatos = tk.Button(ventanaMetodos, text="Añadir", command=lambda: verificarDatos(int(longitudEntry.get())))
-addDatos.pack()
+    addDatos = tk.Button(ventanaMetodos, text="Añadir", command=lambda: verificarDatos(int(longitudEntry.get())))
+    addDatos.pack()
 
-# Iniciar la ventana
-ventanaMetodos.mainloop()
+    # Iniciar la ventana
+    ventanaMetodos.mainloop()

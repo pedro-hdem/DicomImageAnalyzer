@@ -5,11 +5,7 @@ from tkinter import filedialog
 from tkinter import Canvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Importar métodos de análisis
-import os
-
-def ejecutar_archivo(archivo):
-  path = os.path.abspath("./methods/mri/" + archivo)
-  return os.system("python " + path)
+from methods.mri import T2
 
 # Función para cargar una imagen
 def cargar_imagen(frame):
@@ -47,7 +43,7 @@ def mostrar_botones(buttonType, frame):
         # Botones y etiqueta para mri
         mri_buttons = [
             tk.Button(frameSelector, text="Cálculo de T1"),
-            tk.Button(frameSelector, text="Cálculo de T2 \n (Seleccionar carpeta con mapa de T2)", command=lambda: ejecutar_archivo("T2.py")),
+            tk.Button(frameSelector, text="Cálculo de T2 \n (Seleccionar carpeta con mapa de T2)", command=lambda: T2.main()),
             tk.Button(frameSelector, text="Segmentación")
         ]
         imagen_type_label = tk.Label(frameSelector, text=f"Tipo de Imagen {frame}: MRI")
