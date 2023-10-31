@@ -16,6 +16,12 @@ def openImg():
     file_path = filedialog.askopenfilename()
     # Obtiene el directorio del archivo.
     directorio = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+
+    if(file_path):
+        pathText.config(text="Archivo: " + file_name)
+    else:
+        pathText.config(text="¡Seleccione un archivo válido!")
 
 def verificarDatos(longitud):
     global T2cuadradoButton 
@@ -57,6 +63,7 @@ def ajusteROI(longitud):
 def calcT2SquareROI(no_tomas, X, Y, radio):
     listaTE = [];
     listaValoresT2 = [];
+    offsetT2 = 0.1;
 
     # Matriz para almacenar las sumas de intensidades en el ROI a lo largo de 100 imágenes
     sumas_intensidades = np.zeros(no_tomas, dtype=np.float64)    
@@ -66,6 +73,11 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
         img = dicom.dcmread(directorio + imageFileName)
         imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
 
+        #  Obtenemos el valor más alto para el cálculo de T2
+        max_valor = imagenReescalada.max()
+        if (max_valor > offsetT2):
+            offsetT2 = max_valor;
+        
         # Extraer la ROI
         x_start = max(0, X - radio)
         x_end = min(imagenReescalada.shape[1], X + radio)
@@ -80,29 +92,31 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
         # Guardamos los tiempos de Eco para calcular T2.
         listaTE.append(img.EchoTime)
 
-
-    s0 = round(sumas_intensidades[0], 4);
-
     for te, St in zip(listaTE, sumas_intensidades):
-        T2 = -te / math.log(St / s0)
+        T2 = -te / math.log(St / offsetT2)
         listaValoresT2.append(T2);
-    valorMedioT2 = np.mean(listaValoresT2)
-
-    print(valorMedioT2)
-
+    valorMedioT2 = round(np.mean(listaValoresT2), 3)
+    
     plt.plot(sumas_intensidades)
-    plt.title('Valores ROI cuadrado. \n Radio: '+str(radio)+' Centro del ROI: '+str(X)+','+str(Y));
+    plt.title('Valores ROI cuadrado. \n Radio: '+str(radio)+', Centro del ROI: '
+              +str(X)+','+str(Y)+'\nT2 calculado: '+str(valorMedioT2)+'ms', fontsize=10);
     plt.xlabel('Imagen')
     plt.ylabel('Intensidad Media')
     plt.show()
 
 # Ventana para métodos
 ventanaMetodos = tk.Tk()
-ventanaMetodos.title("Ventana Principal")
-ventanaMetodos.geometry("250x100")
+ventanaMetodos.title("Análisis T2")
+ventanaMetodos.geometry("250x150")
+
+file_path = ''  
 
 abrirImagen = tk.Button(ventanaMetodos, text="Cargar Primera imagen", command=openImg)
 abrirImagen.pack()
+
+# Etiqueta para mostrar la ruta del archivo
+pathText = tk.Label(ventanaMetodos, text="")
+pathText.pack()
 
 logitudText = tk.Label(ventanaMetodos, text="Longitud de la serie de T2:")
 logitudText.pack()
