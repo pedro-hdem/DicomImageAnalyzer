@@ -1,6 +1,7 @@
 import pydicom as dicom
 import matplotlib.pyplot as plt
 import tkinter as tk
+import os
 from tkinter import filedialog
 from tkinter import Canvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -15,6 +16,13 @@ def cargar_imagen(frame):
     global img1, img2
     
     file_path = filedialog.askopenfilename()
+
+    if(file_path):
+        file_name = os.path.basename(file_path)
+        label1.config(text="Archivo: " + file_name)
+    else:
+        label1.config(text="¡Seleccione un archivo válido!")
+
     img = dicom.dcmread(file_path)
     imagenReescalada = img.RescaleSlope * img.pixel_array
     centro_x, centro_y = imagenReescalada.shape[1] // 2, imagenReescalada.shape[0] // 2

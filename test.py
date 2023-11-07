@@ -10,7 +10,7 @@ file_name = os.path.basename(file_path)
 directorio = os.path.dirname(file_path)
 firstNum = int(file_name[4:7])
 
-for i in range(0, 110):
+for i in range(0, 100):
     imageFileName = f"/MRIm{(i+firstNum):03d}.dcm"
     img = dicom.dcmread(directorio + imageFileName)
-    print(img.EchoTime)
+    print(img)

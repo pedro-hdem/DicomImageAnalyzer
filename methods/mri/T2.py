@@ -10,29 +10,34 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import Canvas
 import matplotlib.patches as patches
 
-# Herramienta para abrir imagen y guardar su directorio
-def openImg():
-    global file_path, directorio
+ # Calculamos el número de tomas del mapa de T2 observando si los Echo Time desde la imagen inicial crecen o decrecen.
+def calcularNoTomas():
+    # Imagen 1
+    img = dicom.dcmread(path_name)
+    file_name = os.path.basename(path_name)
+    directorio = os.path.dirname(path_name)
+    firstNum = int(file_name[4:7])
+    
+    no_tomas = 0
+    i = 1
+    
+    while True:
+        # Imagen 2
+        image2FileName = f"/MRIm{(i + firstNum):03d}.dcm"
+        img2 = dicom.dcmread(directorio + image2FileName)
 
-    file_path = filedialog.askopenfilename()
-    # Obtiene el directorio del archivo.
-    directorio = os.path.dirname(file_path)
-    file_name = os.path.basename(file_path)
+        valorTEinicial = int(img.EchoTime)
+        valorTEfinal = int(img2.EchoTime)
 
-    if(file_path):
-        pathText.config(text="Archivo: " + file_name)
-    else:
-        pathText.config(text="¡Seleccione un archivo válido!")
+        if valorTEinicial < valorTEfinal:
+            no_tomas += 1
+            i += 1
+            img = img2
+        else:
+            break
 
-def verificarDatos(longitud):
-    global T2cuadradoButton 
-
-    addDatos.pack_forget()
-    logitudText.pack_forget()
-    longitudEntry.pack_forget()
-
-    T2cuadradoButton = tk.Button(frame1, text="Calcular T2\nROI cuadrado", command=lambda: ajusteROI(longitud))
-    T2cuadradoButton.pack()
+    print(no_tomas)
+    return no_tomas
 
 def tryRoi(X, Y, radio):
     # Recargamos la imagen para limpiar el ROI.
@@ -47,34 +52,6 @@ def tryRoi(X, Y, radio):
     )
     ax.add_patch(rect)
     canvas_tkagg1.draw()
-
-def ajusteROI(longitud):
-# Limpiamos y reajustamos la interfaz.
-    T2cuadradoButton.pack_forget()
-
-    # Entradas para el centro y radio del ROI
-    centro_x_label = tk.Label(frame1, text="Centro X del ROI:")
-    centro_x_label.pack()
-    centro_x_entry = tk.Entry(frame1)
-    centro_x_entry.pack()
-
-    centro_y_label = tk.Label(frame1, text="Centro Y del ROI:")
-    centro_y_label.pack()
-    centro_y_entry = tk.Entry(frame1)
-    centro_y_entry.pack()
-
-    radio_label = tk.Label(frame1, text="Radio del ROI:")
-    radio_label.pack()
-    radio_entry = tk.Entry(frame1)
-    radio_entry.pack()
-
-    tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
-    tryROI.pack()
-    
-    # Botón para confirmar ROI:
-    addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT2SquareROI(longitud, int(centro_x_entry.get()),
-                                                                                            int(centro_y_entry.get()), int(radio_entry.get())))
-    addDatos.pack()
 
 # Cálculo de T2 para una ROI cuadrada de radio y centro variables
 def calcT2SquareROI(no_tomas, X, Y, radio):
@@ -121,15 +98,16 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
 
     ax2.clear()    
     ax2.plot(sumas_intensidades)
-    plt.title('Valores ROI cuadrado.\nT2 calculado: '+str(valorMedioT2)+'ms');
+    plt.title('Valores ROI cuadrado.\nT2: '+str(valorMedioT2)+'ms');
     plt.xlabel('Imagen')
     plt.ylabel('Intensidad Media')
     canvas_tkagg2.draw()
 
 def main(file_path):
-    global canvas_tkagg2, path_name, fig2, ax2, imagenReescalada, fig, ax, frame1, frame2, canvas_tkagg1, pathText, longitudEntry, logitudText, addDatos, ventanaMetodos
+    global canvas_tkagg2, path_name, ax2, imagenReescalada, ax, canvas_tkagg1
 
     path_name = file_path
+    no_tomas = calcularNoTomas()
 
     # Ventana para métodos
     ventanaMetodos = tk.Tk()
@@ -156,12 +134,28 @@ def main(file_path):
     canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas1)
     canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    logitudText = tk.Label(frame1, text="Longitud de la serie de T2:")
-    logitudText.pack()
-    longitudEntry = tk.Entry(frame1)
-    longitudEntry.pack()
+    # Entradas para el centro y radio del ROI
+    centro_x_label = tk.Label(frame1, text="Centro X del ROI:")
+    centro_x_label.pack()
+    centro_x_entry = tk.Entry(frame1)
+    centro_x_entry.pack()
 
-    addDatos = tk.Button(frame1, text="Añadir", command=lambda: verificarDatos(int(longitudEntry.get())))
+    centro_y_label = tk.Label(frame1, text="Centro Y del ROI:")
+    centro_y_label.pack()
+    centro_y_entry = tk.Entry(frame1)
+    centro_y_entry.pack()
+
+    radio_label = tk.Label(frame1, text="Radio del ROI:")
+    radio_label.pack()
+    radio_entry = tk.Entry(frame1)
+    radio_entry.pack()
+
+    tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+    tryROI.pack()
+    
+    # Botón para confirmar ROI:
+    addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT2SquareROI(no_tomas, int(centro_x_entry.get()),
+                                                                                            int(centro_y_entry.get()), int(radio_entry.get())))
     addDatos.pack()
 
     # Elementos para frame 2
