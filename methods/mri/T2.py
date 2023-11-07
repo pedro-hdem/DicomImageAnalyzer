@@ -36,22 +36,33 @@ def calcularNoTomas():
         else:
             break
 
-    print(no_tomas)
     return no_tomas
 
-def tryRoi(X, Y, radio):
+def tryRoi(forma, X, Y, radio):
     # Recargamos la imagen para limpiar el ROI.
     ax.clear()
     ax.imshow(imagenReescalada, cmap=plt.cm.bone)
     canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-    # Crea un rectángulo que representa el cuadrado
-    rect = patches.Rectangle(
-        (X - radio, Y - radio),
-        2 * radio, 2 * radio,
-        linewidth=2, edgecolor='yellow', facecolor='none'
-    )
-    ax.add_patch(rect)
-    canvas_tkagg1.draw()
+
+    if(forma == 'Círculo'):
+        # Crea un rectángulo que representa el cuadrado
+        cir = patches.Circle(
+            (X, Y),
+            radio,
+            linewidth=2, edgecolor='yellow', facecolor='none'
+        )
+        ax.add_patch(cir)
+        canvas_tkagg1.draw()  
+
+    if (forma == 'Cuadrado'):
+        # Crea un rectángulo que representa el cuadrado
+        rect = patches.Rectangle(
+            (X - radio, Y - radio),
+            2 * radio, 2 * radio,
+            linewidth=2, edgecolor='yellow', facecolor='none'
+        )
+        ax.add_patch(rect)
+        canvas_tkagg1.draw()    
 
 # Cálculo de T2 para una ROI cuadrada de radio y centro variables
 def calcT2SquareROI(no_tomas, X, Y, radio):
@@ -62,7 +73,10 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
     firstNum = int(file_name[4:7])
     listaTE = [];
     listaValoresT2 = [];
-    offsetT2 = 0.1;
+
+    img = dicom.dcmread(path_name)
+    imagenReescalada = img.RescaleSlope * img.pixel_array 
+    offsetT2 = imagenReescalada.max();
 
     # Matriz para almacenar las sumas de intensidades en el ROI a lo largo de 100 imágenes
     sumas_intensidades = np.zeros(no_tomas, dtype=np.float64)    
@@ -134,6 +148,13 @@ def main(file_path):
     canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas1)
     canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+    # Crear el menú desplegable# Opciones del menú desplegable
+    opciones = ["Cuadrado", "Círculo"]
+    figura_seleccionada = tk.StringVar(ventanaMetodos)
+    figura_seleccionada.set(opciones[0]) 
+    menu_desplegable = tk.OptionMenu(frame1, figura_seleccionada, *opciones)
+    menu_desplegable.pack()
+    
     # Entradas para el centro y radio del ROI
     centro_x_label = tk.Label(frame1, text="Centro X del ROI:")
     centro_x_label.pack()
@@ -150,7 +171,7 @@ def main(file_path):
     radio_entry = tk.Entry(frame1)
     radio_entry.pack()
 
-    tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+    tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(figura_seleccionada.get(),int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
     tryROI.pack()
     
     # Botón para confirmar ROI:
