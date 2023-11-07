@@ -9,7 +9,7 @@ from methods.mri import T2
 
 # Función para cargar una imagen
 def cargar_imagen(frame):
-    global imagenReescalada
+    global imagenReescalada, file_path
     global centro_x, centro_y, radio
     global fig1, fig2, canvas_tkagg1, canvas_tkagg2, ax1, ax2
     global img1, img2
@@ -43,7 +43,7 @@ def mostrar_botones(buttonType, frame):
         # Botones y etiqueta para mri
         mri_buttons = [
             tk.Button(frameSelector, text="Cálculo de T1"),
-            tk.Button(frameSelector, text="Cálculo de T2 \n (Seleccionar carpeta con mapa de T2)", command=lambda: T2.main()),
+            tk.Button(frameSelector, text="Cálculo de T2 \n (Seleccionar carpeta con mapa de T2)", command=lambda: T2.main(file_path)),
             tk.Button(frameSelector, text="Segmentación")
         ]
         imagen_type_label = tk.Label(frameSelector, text=f"Tipo de Imagen {frame}: MRI")

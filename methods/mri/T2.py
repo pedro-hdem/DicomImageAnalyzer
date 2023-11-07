@@ -27,28 +27,18 @@ def openImg():
 def verificarDatos(longitud):
     global T2cuadradoButton 
 
-    abrirImagen.pack_forget()
+    addDatos.pack_forget()
     logitudText.pack_forget()
     longitudEntry.pack_forget()
 
-    T2cuadradoButton = tk.Button(ventanaMetodos, text="Calcular T2/nROI cuadrado", command=lambda: ajusteROI(longitud))
+    T2cuadradoButton = tk.Button(frame1, text="Calcular T2\nROI cuadrado", command=lambda: ajusteROI(longitud))
     T2cuadradoButton.pack()
 
 def tryRoi(X, Y, radio):
-    global file_path
-    ventanaROI = tk.Toplevel()
-    ventanaROI.title("Prueba ROI")
-    canvas_grf = Canvas(ventanaROI, width=400, height=400)
-    canvas_grf.pack()
-
-    img = dicom.dcmread(file_path)
-    imagenReescalada = img.RescaleSlope * img.pixel_array
-    fig, ax = plt.subplots()
-    plt.axis('off')
+    # Recargamos la imagen para limpiar el ROI.
+    ax.clear()
     ax.imshow(imagenReescalada, cmap=plt.cm.bone)
-    canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas_grf)
     canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
     # Crea un rectángulo que representa el cuadrado
     rect = patches.Rectangle(
         (X - radio, Y - radio),
@@ -56,40 +46,42 @@ def tryRoi(X, Y, radio):
         linewidth=2, edgecolor='yellow', facecolor='none'
     )
     ax.add_patch(rect)
+    canvas_tkagg1.draw()
 
 def ajusteROI(longitud):
 # Limpiamos y reajustamos la interfaz.
     T2cuadradoButton.pack_forget()
-    ventanaMetodos.geometry("300x500")
 
     # Entradas para el centro y radio del ROI
-    centro_x_label = tk.Label(ventanaMetodos, text="Centro X del ROI:")
+    centro_x_label = tk.Label(frame1, text="Centro X del ROI:")
     centro_x_label.pack()
-    centro_x_entry = tk.Entry(ventanaMetodos)
+    centro_x_entry = tk.Entry(frame1)
     centro_x_entry.pack()
 
-    centro_y_label = tk.Label(ventanaMetodos, text="Centro Y del ROI:")
+    centro_y_label = tk.Label(frame1, text="Centro Y del ROI:")
     centro_y_label.pack()
-    centro_y_entry = tk.Entry(ventanaMetodos)
+    centro_y_entry = tk.Entry(frame1)
     centro_y_entry.pack()
 
-    radio_label = tk.Label(ventanaMetodos, text="Radio del ROI:")
+    radio_label = tk.Label(frame1, text="Radio del ROI:")
     radio_label.pack()
-    radio_entry = tk.Entry(ventanaMetodos)
+    radio_entry = tk.Entry(frame1)
     radio_entry.pack()
 
-    tryROI = tk.Button(ventanaMetodos, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+    tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
     tryROI.pack()
     
     # Botón para confirmar ROI:
-    addDatos = tk.Button(ventanaMetodos, text="Confirmar", command=lambda: calcT2SquareROI(longitud, int(centro_x_entry.get()),
+    addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT2SquareROI(longitud, int(centro_x_entry.get()),
                                                                                             int(centro_y_entry.get()), int(radio_entry.get())))
     addDatos.pack()
 
 # Cálculo de T2 para una ROI cuadrada de radio y centro variables
 def calcT2SquareROI(no_tomas, X, Y, radio):
     global file_path
-    file_name = os.path.basename(file_path)
+    
+    file_name = os.path.basename(path_name)
+    directorio = os.path.dirname(path_name)
     firstNum = int(file_name[4:7])
     listaTE = [];
     listaValoresT2 = [];
@@ -126,36 +118,61 @@ def calcT2SquareROI(no_tomas, X, Y, radio):
         T2 = -te / math.log(St / offsetT2)
         listaValoresT2.append(T2);
     valorMedioT2 = round(np.mean(listaValoresT2), 3)
-    
-    plt.plot(sumas_intensidades)
-    plt.title('Valores ROI cuadrado. \n Radio: '+str(radio)+', Centro del ROI: '
-              +str(X)+','+str(Y)+'\nT2 calculado: '+str(valorMedioT2)+'ms', fontsize=10);
+
+    ax2.clear()    
+    ax2.plot(sumas_intensidades)
+    plt.title('Valores ROI cuadrado.\nT2 calculado: '+str(valorMedioT2)+'ms');
     plt.xlabel('Imagen')
     plt.ylabel('Intensidad Media')
-    plt.show()
+    canvas_tkagg2.draw()
 
-def main():
+def main(file_path):
+    global canvas_tkagg2, path_name, fig2, ax2, imagenReescalada, fig, ax, frame1, frame2, canvas_tkagg1, pathText, longitudEntry, logitudText, addDatos, ventanaMetodos
+
+    path_name = file_path
+
     # Ventana para métodos
     ventanaMetodos = tk.Tk()
     ventanaMetodos.title("Análisis T2")
-    ventanaMetodos.geometry("250x150")
+    ventanaMetodos.geometry("1200x800")
+    
+    frame1 = tk.Frame(ventanaMetodos)
+    frame2 = tk.Frame(ventanaMetodos)
+    frame1.pack(side="left")
+    frame2.pack(side="right")
 
-    file_path = ''  
+    file_name = os.path.basename(file_path)
+    img = dicom.dcmread(file_path)
+    imagenReescalada = img.RescaleSlope * img.pixel_array
 
-    abrirImagen = tk.Button(ventanaMetodos, text="Cargar Primera imagen", command=openImg)
-    abrirImagen.pack()
+    # Elementos para el Frame 1
+    label1 = tk.Label(frame1, text= file_name, font=("Helvetica", 12, "bold"))
+    label1.pack()
 
-    # Etiqueta para mostrar la ruta del archivo
-    pathText = tk.Label(ventanaMetodos, text="")
-    pathText.pack()
+    canvas1 = Canvas(frame1)
+    canvas1.pack()
+    fig, ax = plt.subplots()
+    ax.imshow(imagenReescalada, cmap=plt.cm.bone)
+    canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas1)
+    canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    logitudText = tk.Label(ventanaMetodos, text="Longitud de la serie de T2:")
+    logitudText = tk.Label(frame1, text="Longitud de la serie de T2:")
     logitudText.pack()
-    longitudEntry = tk.Entry(ventanaMetodos)
+    longitudEntry = tk.Entry(frame1)
     longitudEntry.pack()
 
-    addDatos = tk.Button(ventanaMetodos, text="Añadir", command=lambda: verificarDatos(int(longitudEntry.get())))
+    addDatos = tk.Button(frame1, text="Añadir", command=lambda: verificarDatos(int(longitudEntry.get())))
     addDatos.pack()
+
+    # Elementos para frame 2
+    label2 = tk.Label(frame2, text="Análisis", font=("Helvetica", 12, "bold"))
+    label2.pack()
+
+    canvas2 = Canvas(frame2, width=512, height=512)
+    canvas2.pack()
+    fig2, ax2 = plt.subplots()
+    canvas_tkagg2 = FigureCanvasTkAgg(fig2, master=canvas2)
+    canvas_tkagg2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     # Iniciar la ventana
     ventanaMetodos.mainloop()
