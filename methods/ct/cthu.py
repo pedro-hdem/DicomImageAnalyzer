@@ -11,6 +11,7 @@ import tkinter as tk
 import pydicom as dicom
 import matplotlib.patches as patches
 from scipy.optimize import curve_fit
+from PIL import Image, ImageTk
 
 # Función para cargar y mostrar la imagen DICOM
 def cargar_mostrar_imagen(idx):
@@ -55,58 +56,27 @@ def tryRoi(X, Y, radio):
     ax.add_patch(rect)
     canvas_tkagg1.draw()
 
-def modeloIR(TI, S0, T1):
-    return S0 * (1 - 2 * np.exp(-TI / T1))
 
-# Cálculo de T1 para una ROI cuadrada de radio y centro variables
-def calcT1IR(X, Y, radio):
+def modeloT2(TE, ST, T2):
+    return -TE / math.log(ST / T2)
+
+# Cálculo de T2 para una ROI cuadrada de radio y centro variables
+def calcHU(X, Y, radio):
     global file_path
+    img = dicom.dcmread(file_path)
+    imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
     
-    listaTI = [];
-    sumas_intensidades = [];
+    # Extraer la ROI
+    x_start = max(0, X - radio)
+    x_end = min(imagenReescalada.shape[1], X + radio)
+    y_start = max(0, Y - radio)
+    y_end = min(imagenReescalada.shape[0], Y + radio)
 
-    for archivo in os.listdir(dir_path):
-        ruta_completa = os.path.join(dir_path, archivo)
-        img = dicom.dcmread(ruta_completa)
-        imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
-        
-        # Extraer la ROI
-        x_start = max(0, X - radio)
-        x_end = min(imagenReescalada.shape[1], X + radio)
-        y_start = max(0, Y - radio)
-        y_end = min(imagenReescalada.shape[0], Y + radio)
+    roi = imagenReescalada[y_start:y_end, x_start:x_end]
 
-        roi = imagenReescalada[y_start:y_end, x_start:x_end]
+    suma_valores = np.mean(roi)
 
-        # Calcular la suma de intensidades en la ROI y almacenarla en el array sumas_intensidades
-        sumas_intensidades.append(np.mean(roi))
-        # Guardamos los tiempos de inversión.
-        listaTI.append(img.InversionTime)
-
-    # Límites del ajuste ([inferiorS0, inferiorT1], [superiorS0, superiorT1])    
-    bounds = ([0, 0], [200, 1000])
-    # Valores iniciales de los parámetros del ajuste.
-    p0=[10, 10]
-    # Ajuste de mínimos cuadrados
-    popt, pcov = curve_fit(modeloIR, listaTI, sumas_intensidades, p0=p0, bounds=bounds)
-    S0_opt, T1_opt = popt
-    print(f"S0 optimizado: {S0_opt}, T1 optimizado: {T1_opt} ms")
-
-    # Cálculo de desviación estándar
-    perr = np.sqrt(np.diag(pcov))
-    print("Desviación estándar de S0:", perr[0])
-    print("Desviación estándar de T1:", perr[1])
-
-    # Graficar datos y ajuste
-    ax2.clear()
-    ax2.scatter(listaTI, sumas_intensidades, label='Datos')    
-    TI_fit = np.linspace(min(listaTI), max(sumas_intensidades), 100)
-    S_fit = modeloIR(TI_fit, *popt)
-    ax2.plot(TI_fit, S_fit, label='Ajuste', color='red')
-    plt.title('Ajuste de Señal: σ(T1): ' + str(round(perr[1],2)) + '\nT1: '+str(round(T1_opt,4))+'ms');
-    plt.xlabel('TI')
-    plt.ylabel('Señal')
-    canvas_tkagg2.draw()
+    label3.config(text='\n'+str(round(suma_valores,2)))
 
 # Ventana para métodos
 ventanaMetodos = tk.Tk()
@@ -133,8 +103,8 @@ imagenReescalada = img.RescaleSlope * img.pixel_array
 # Elementos para el Frame 1
 label1 = tk.Label(frame1, text= file_name, font=("Helvetica", 12, "bold"))
 label1.pack()
-label2 = tk.Label(frame1, text= 'Secuencia: ' + img.SequenceName, font=("Helvetica", 12, "bold"))
-label2.pack()
+labelsequence = tk.Label(frame1, text= 'Descripción: ' + img.StudyDescription, font=("Helvetica", 12, "bold"))
+labelsequence.pack()
 
 canvas1 = Canvas(frame1)
 canvas1.pack()
@@ -172,18 +142,20 @@ tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(
 tryROI.pack()
 
 # Botón para confirmar ROI:
-addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT1IR(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcHU(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
 addDatos.pack()
 
 # Elementos para frame 2
-label2 = tk.Label(frame2, text="Análisis", font=("Helvetica", 12, "bold"))
+label2 = tk.Label(frame2, text="HU calculados: ", font=("Helvetica", 12, "bold"))
 label2.pack()
 
-canvas2 = Canvas(frame2, width=512, height=512)
-canvas2.pack()
-fig2, ax2 = plt.subplots()
-canvas_tkagg2 = FigureCanvasTkAgg(fig2, master=canvas2)
-canvas_tkagg2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+label3 = tk.Label(frame2, text="\n", font=("Helvetica", 12))
+label3.pack()
+
+# Cargar la imagen de escala HU
+imagenHU = tk.PhotoImage(file="methods\\ct\\HUunits.png")
+label_imagen = tk.Label(frame2, image=imagenHU)
+label_imagen.pack()
 
 # Iniciar la ventana
 ventanaMetodos.mainloop()

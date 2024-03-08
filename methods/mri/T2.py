@@ -12,6 +12,35 @@ import pydicom as dicom
 import matplotlib.patches as patches
 from scipy.optimize import curve_fit
 
+# Función para cargar y mostrar la imagen DICOM
+def cargar_mostrar_imagen(idx):
+    global imagenReescalada, file_path
+    file_path = dicom_files[idx]
+    ds = dicom.dcmread(file_path)
+    imagenReescalada = ds.pixel_array
+
+    # Limpia el área del canvas antes de mostrar una nueva imagen
+    ax.clear()
+    ax.imshow(imagenReescalada, cmap=plt.cm.bone)
+    canvas_tkagg1.draw()
+    
+    # Actualiza el label con el nombre del archivo
+    file_name = os.path.basename(file_path)
+    label1.config(text=file_name)
+
+# Función para avanzar a la siguiente imagen
+def siguiente_imagen():
+    global imagen_idx
+    imagen_idx = (imagen_idx + 1) % len(dicom_files)  # Asegura ciclar la lista
+    cargar_mostrar_imagen(imagen_idx)
+
+# Función para regresar a la imagen anterior
+def imagen_anterior():
+    global imagen_idx
+    imagen_idx = (imagen_idx - 1) % len(dicom_files)  # Asegura ciclar la lista
+    cargar_mostrar_imagen(imagen_idx)
+
+
 def tryRoi(X, Y, radio):
     # Recargamos la imagen para limpiar el ROI.
     ax.clear()
@@ -85,7 +114,12 @@ ventanaMetodos.wait_visibility()
 ventanaMetodos.title("Análisis T2")
 ventanaMetodos.geometry("1200x800")
 
-file_path = filedialog.askopenfilename()
+file_path = os.path.abspath(filedialog.askopenfilename())
+dir_path = os.path.dirname(file_path)
+
+# Lista todos los archivos DICOM en el directorio
+dicom_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if f.endswith('.dcm')]
+imagen_idx = dicom_files.index(file_path)  # Index del archivo seleccionado inicialmente
 
 frame1 = tk.Frame(ventanaMetodos)
 frame2 = tk.Frame(ventanaMetodos)
@@ -106,6 +140,15 @@ fig, ax = plt.subplots()
 ax.imshow(imagenReescalada, cmap=plt.cm.bone)
 canvas_tkagg1 = FigureCanvasTkAgg(fig, master=canvas1)
 canvas_tkagg1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+# Botones para navegar entre imágenes
+btn_anterior = tk.Button(frame1, text="<", command=imagen_anterior)
+btn_anterior.pack(side=tk.LEFT)
+btn_siguiente = tk.Button(frame1, text=">", command=siguiente_imagen)
+btn_siguiente.pack(side=tk.RIGHT)
+
+# Carga la primera imagen
+cargar_mostrar_imagen(imagen_idx)
 
 # Entradas para el centro y radio del ROI
 centro_x_label = tk.Label(frame1, text="Centro X del ROI:")
