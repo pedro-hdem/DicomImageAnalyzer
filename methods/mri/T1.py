@@ -27,32 +27,21 @@ def tryRoi(X, Y, radio):
     ax.add_patch(rect)
     canvas_tkagg1.draw()
 
+def modeloIR(TI, S0, T1):
+    return S0 * (1 - 2 * np.exp(-TI / T1))
 
-def modeloT2(TE, ST, T2):
-    return -TE / math.log(ST / T2)
-
-# Cálculo de T2 para una ROI cuadrada de radio y centro variables
-def calcT2map(X, Y, radio):
+# Cálculo de T1 para una ROI cuadrada de radio y centro variables
+def calcT1IR(X, Y, radio):
     global file_path
     directorio = os.path.dirname(file_path)
-
-    listaTE = [];
-    listaValoresT2 = [];
+    
+    listaTI = [];
     sumas_intensidades = [];
-
-    img = dicom.dcmread(file_path)
-    imagenReescalada = img.RescaleSlope * img.pixel_array
-    offsetT2 = imagenReescalada.max();
 
     for archivo in os.listdir(directorio):
         ruta_completa = os.path.join(directorio, archivo)
         img = dicom.dcmread(ruta_completa)
         imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
-
-        #  Obtenemos el valor más alto para el cálculo de T2
-        max_valor = imagenReescalada.max()
-        if (max_valor > offsetT2):
-            offsetT2 = max_valor;
         
         # Extraer la ROI
         x_start = max(0, X - radio)
@@ -64,19 +53,28 @@ def calcT2map(X, Y, radio):
 
         # Calcular la suma de intensidades en la ROI y almacenarla en el array sumas_intensidades
         sumas_intensidades.append(np.mean(roi))
-        # Guardamos los tiempos de Eco para calcular T2.
-        listaTE.append(img.EchoTime)
+        # Guardamos los tiempos de inversión.
+        listaTI.append(img.InversionTime)
 
-    for te, St in zip(listaTE, sumas_intensidades):
-        T2 = -te / math.log(St / offsetT2)
-        listaValoresT2.append(T2);
-    valorMedioT2 = round(np.mean(listaValoresT2), 3)
+    popt, pcov = curve_fit(modeloIR, listaTI, sumas_intensidades, p0=[100, 100])
+    S0_opt, T1_opt = popt
+    print(f"S0 optimizado: {S0_opt}, T1 optimizado: {T1_opt} ms")
 
-    ax2.clear()    
-    ax2.plot(sumas_intensidades)
-    plt.title('Valores ROI cuadrado.\nT2: '+str(valorMedioT2)+'ms');
-    plt.xlabel('Imagen')
-    plt.ylabel('Intensidad Media')
+    # Cálculo de desviación estándar
+    perr = np.sqrt(np.diag(pcov))
+    print("Desviación estándar de S0:", perr[0])
+    print("Desviación estándar de T1:", perr[1])
+
+    # Graficar datos y ajuste
+
+    ax2.clear()
+    ax2.scatter(listaTI, sumas_intensidades, label='Datos')    
+    TI_fit = np.linspace(min(listaTI), max(sumas_intensidades), 100)
+    S_fit = modeloIR(TI_fit, *popt)
+    ax2.plot(TI_fit, S_fit, label='Ajuste', color='red')
+    plt.title('Ajuste de Señal: σ(T1): ' + str(round(perr[1],2)) + '\nT1: '+str(round(T1_opt,4))+'ms');
+    plt.xlabel('TI')
+    plt.ylabel('Señal')
     canvas_tkagg2.draw()
 
 # Ventana para métodos
@@ -94,11 +92,14 @@ frame2.pack(side="right")
 
 file_name = os.path.basename(file_path)
 img = dicom.dcmread(file_path)
+print(img)
 imagenReescalada = img.RescaleSlope * img.pixel_array
 
 # Elementos para el Frame 1
 label1 = tk.Label(frame1, text= file_name, font=("Helvetica", 12, "bold"))
 label1.pack()
+label2 = tk.Label(frame1, text= 'Secuencia: ' + img.SequenceName, font=("Helvetica", 12, "bold"))
+label2.pack()
 
 canvas1 = Canvas(frame1)
 canvas1.pack()
@@ -127,7 +128,7 @@ tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(
 tryROI.pack()
 
 # Botón para confirmar ROI:
-addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT2map(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT1IR(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
 addDatos.pack()
 
 # Elementos para frame 2

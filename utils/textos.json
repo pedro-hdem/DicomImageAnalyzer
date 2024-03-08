@@ -1,0 +1,6 @@
+{
+    "T2": "Calcular un mapa de T2 con una \nsecuencia de imágenes de TE ascendente.\nRecuerda que la carpeta de análisis\n debe contener solo un corte.\n\nPara calcular un mapa de T2,\n utilizamos un ajuste de mínimos\n cuadrados a la ecuación de señal vs tiempo:\n S(TE) = S0 * exp(-TE / T2)\n\nEl ajuste se hace con respecto \na la magnetización inicial del campo (S0) y \nel valor de T2, que queremos obtener.",
+    "T1IR": "Calcular un mapa de T1 con una \nsecuencia de imágenes de IR.\nRecuerda que la carpeta de análisis\n debe contener solo un corte.\n\nPara calcular un mapa de T1 con IR,\n utilizamos un ajuste de mínimos\n cuadrados a la ecuación de señal vs tiempo:\nS(TI) = S0 * (1 - 2 * exp(-TI / T1))\n\nEl ajuste se hace con respecto \na la magnetización inicial del campo (S0) y \nel valor de T1 que queremos obtener.",
+    "CTHU": "Analiza un ROI en una imagen de TC\n para obtener sus unidades Hounsfield."
+}
+  
