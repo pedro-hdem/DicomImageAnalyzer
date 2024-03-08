@@ -85,8 +85,8 @@ def calcT1IR(X, Y, radio):
 
     # Límites del ajuste ([inferiorS0, inferiorT1], [superiorS0, superiorT1])    
     bounds = ([0, 0], [200, 1000])
-    # Valores iniciales de los parámetros del ajuste.
-    p0=[10, 10]
+    # Valores iniciales de S0 y T1.
+    p0=[100, 1000]
     # Ajuste de mínimos cuadrados
     popt, pcov = curve_fit(modeloIR, listaTI, sumas_intensidades, p0=p0, bounds=bounds)
     S0_opt, T1_opt = popt
