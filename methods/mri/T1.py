@@ -56,11 +56,14 @@ def tryRoi(X, Y, radio):
     canvas_tkagg1.draw()
 
 def modeloIR(TI, S0, T1):
+    return S0 * (1 - 2 * np.exp(-TI / T1) + np.exp(-TR / T1))
+
+def modeloIRSimplificado(TI, S0, T1):
     return S0 * (1 - 2 * np.exp(-TI / T1))
 
 # Cálculo de T1 para una ROI cuadrada de radio y centro variables
 def calcT1IR(X, Y, radio):
-    global file_path
+    global file_path, TR
     
     listaTI = [];
     sumas_intensidades = [];
@@ -82,11 +85,20 @@ def calcT1IR(X, Y, radio):
         sumas_intensidades.append(np.mean(roi))
         # Guardamos los tiempos de inversión.
         listaTI.append(img.InversionTime)
+        TR = (img.RepetitionTime)
 
+    #print(f"Datos X: {listaTI}, Datos Y: {sumas_intensidades}")
+    
     # Límites del ajuste ([inferiorS0, inferiorT1], [superiorS0, superiorT1])    
-    bounds = ([0, 0], [200, 1000])
-    # Valores iniciales de S0 y T1.
-    p0=[100, 1000]
+    bounds = ([0, 0], [100, 1000])
+    # Cálculo de los valores iniciales para el modelo.
+    # Estimar S0 como el promedio de los valores máximos de señal
+    S0_initial_guess = np.mean([np.max(sumas_intensidades), np.abs(np.min(sumas_intensidades))]) / 2
+    # Encontrar el TI más cercano a cero (puede que no sea exactamente cero debido al ruido) y usarlo para estimar T1
+    TI_zero_crossing = listaTI[np.argmin(np.abs(sumas_intensidades))]
+    T1_initial_guess = -TI_zero_crossing / np.log(0.5)  # Resolvemos 1 - 2 * e^(-TI/T1) = 0
+    p0 = [S0_initial_guess, T1_initial_guess]    
+    
     # Ajuste de mínimos cuadrados
     popt, pcov = curve_fit(modeloIR, listaTI, sumas_intensidades, p0=p0, bounds=bounds)
     S0_opt, T1_opt = popt
@@ -100,13 +112,17 @@ def calcT1IR(X, Y, radio):
     # Graficar datos y ajuste
     ax2.clear()
     ax2.scatter(listaTI, sumas_intensidades, label='Datos')    
-    TI_fit = np.linspace(min(listaTI), max(sumas_intensidades), 100)
+    TI_fit = np.linspace(min(listaTI), max(listaTI), 100)
     S_fit = modeloIR(TI_fit, *popt)
     ax2.plot(TI_fit, S_fit, label='Ajuste', color='red')
     plt.title('Ajuste de Señal: σ(T1): ' + str(round(perr[1],2)) + '\nT1: '+str(round(T1_opt,4))+'ms');
     plt.xlabel('TI')
     plt.ylabel('Señal')
     canvas_tkagg2.draw()
+
+    # plt.imshow(np.log(np.abs(pcov)))
+    # plt.colorbar()
+    # plt.show()
 
 # Ventana para métodos
 ventanaMetodos = tk.Tk()

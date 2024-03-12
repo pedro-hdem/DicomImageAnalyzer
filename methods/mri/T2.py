@@ -57,31 +57,19 @@ def tryRoi(X, Y, radio):
     canvas_tkagg1.draw()
 
 
-def modeloT2(TE, ST, T2):
-    return -TE / math.log(ST / T2)
+def modeloT2(TE, S0, T2):
+    return S0 * np.exp(-TE / T2)
 
-# Cálculo de T2 para una ROI cuadrada de radio y centro variables
-def calcT2map(X, Y, radio):
+def calcT2mapMC(X, Y, radio):
     global file_path
-    directorio = os.path.dirname(file_path)
-
+    
     listaTE = [];
-    listaValoresT2 = [];
     sumas_intensidades = [];
 
-    img = dicom.dcmread(file_path)
-    imagenReescalada = img.RescaleSlope * img.pixel_array
-    offsetT2 = imagenReescalada.max();
-
-    for archivo in os.listdir(directorio):
-        ruta_completa = os.path.join(directorio, archivo)
+    for archivo in os.listdir(dir_path):
+        ruta_completa = os.path.join(dir_path, archivo)
         img = dicom.dcmread(ruta_completa)
         imagenReescalada = img.RescaleSlope * img.pixel_array  # Imagen con factor de reescalado
-
-        #  Obtenemos el valor más alto para el cálculo de T2
-        max_valor = imagenReescalada.max()
-        if (max_valor > offsetT2):
-            offsetT2 = max_valor;
         
         # Extraer la ROI
         x_start = max(0, X - radio)
@@ -93,20 +81,43 @@ def calcT2map(X, Y, radio):
 
         # Calcular la suma de intensidades en la ROI y almacenarla en el array sumas_intensidades
         sumas_intensidades.append(np.mean(roi))
-        # Guardamos los tiempos de Eco para calcular T2.
+        # Guardamos los tiempos de inversión.
         listaTE.append(img.EchoTime)
 
-    for te, St in zip(listaTE, sumas_intensidades):
-        T2 = -te / math.log(St / offsetT2)
-        listaValoresT2.append(T2);
-    valorMedioT2 = round(np.mean(listaValoresT2), 3)
+    # Límites del ajuste ([inferiorST, inferiorT2], [superiorST, superiorT2])    
+    bounds = ([10, 10], [20, 500])
 
-    ax2.clear()    
-    ax2.plot(sumas_intensidades)
-    plt.title('Valores ROI cuadrado.\nT2: '+str(valorMedioT2)+'ms');
-    plt.xlabel('Imagen')
-    plt.ylabel('Intensidad Media')
+    # Valores iniciales de ST y T2.
+    # Estimación de S0 como el valor máximo de la señal
+    S0_estimado = np.max(sumas_intensidades)
+    # Encuentra el TE donde la señal es aproximadamente 1/e del valor máximo
+    T2_estimado = listaTE[np.argmin(np.abs(sumas_intensidades - (S0_estimado / np.e)))]
+    p0 = [S0_estimado, T2_estimado]
+
+    # Ajuste de mínimos cuadrados
+    popt, pcov = curve_fit(modeloT2, listaTE, sumas_intensidades, p0=p0, bounds=bounds)
+    ST_opt, T2_opt = popt
+    print(f"ST optimizado: {ST_opt}, T2 optimizado: {T2_opt} ms")
+
+    # Cálculo de desviación estándar
+    perr = np.sqrt(np.diag(pcov))
+    print("Desviación estándar de ST:", perr[0])
+    print("Desviación estándar de T2:", perr[1])
+
+    # Graficar datos y ajuste
+    ax2.clear()
+    ax2.scatter(listaTE, sumas_intensidades, label='Datos')    
+    TI_fit = np.linspace(min(listaTE), max(listaTE), 100)
+    S_fit = modeloT2(TI_fit, *popt)
+    ax2.plot(TI_fit, S_fit, label='Ajuste', color='red')
+    plt.title('Ajuste de Señal: σ(T2): ' + str(round(perr[1],2)) + '\nT2: '+str(round(T2_opt,4))+'ms');
+    plt.xlabel('TI')
+    plt.ylabel('Señal')
     canvas_tkagg2.draw()
+
+    # plt.imshow(np.log(np.abs(pcov)))
+    # plt.colorbar()
+    # plt.show()
 
 # Ventana para métodos
 ventanaMetodos = tk.Tk()
@@ -170,7 +181,7 @@ tryROI = tk.Button(frame1, text="Previsualizar ROI", command=lambda: tryRoi(int(
 tryROI.pack()
 
 # Botón para confirmar ROI:
-addDatos = tk.Button(frame1, text="Confirmar", command=lambda: calcT2map(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
+addDatos = tk.Button(frame1, text="Cálculo con MC", command=lambda: calcT2mapMC(int(centro_x_entry.get()), int(centro_y_entry.get()), int(radio_entry.get())))
 addDatos.pack()
 
 # Elementos para frame 2
