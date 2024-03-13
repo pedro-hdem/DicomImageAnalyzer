@@ -56,10 +56,10 @@ def tryRoi(X, Y, radio):
     canvas_tkagg1.draw()
 
 def modeloIR(TI, S0, T1):
-    return S0 * (1 - 2 * np.exp(-TI / T1) + np.exp(-TR / T1))
+    return S0 * np.abs(1 - 2 * np.exp(-TI / T1))
 
 def modeloIRSimplificado(TI, S0, T1):
-    return S0 * (1 - 2 * np.exp(-TI / T1))
+    return S0 * np.abs(1 - 2 * np.exp(-TI / T1))
 
 # Cálculo de T1 para una ROI cuadrada de radio y centro variables
 def calcT1IR(X, Y, radio):
@@ -90,11 +90,12 @@ def calcT1IR(X, Y, radio):
     #print(f"Datos X: {listaTI}, Datos Y: {sumas_intensidades}")
     
     # Límites del ajuste ([inferiorS0, inferiorT1], [superiorS0, superiorT1])    
-    bounds = ([0, 0], [100, 1000])
+    bounds = ([0, 10], [100, 5000])
     # Cálculo de los valores iniciales para el modelo.
     # Estimar S0 como el promedio de los valores máximos de señal
     S0_initial_guess = np.mean([np.max(sumas_intensidades), np.abs(np.min(sumas_intensidades))]) / 2
     # Encontrar el TI más cercano a cero (puede que no sea exactamente cero debido al ruido) y usarlo para estimar T1
+    #TODO: probar TI*ln2 (probamos el TI del mínimo) y debería valer
     TI_zero_crossing = listaTI[np.argmin(np.abs(sumas_intensidades))]
     T1_initial_guess = -TI_zero_crossing / np.log(0.5)  # Resolvemos 1 - 2 * e^(-TI/T1) = 0
     p0 = [S0_initial_guess, T1_initial_guess]    

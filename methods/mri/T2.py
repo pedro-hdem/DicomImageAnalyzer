@@ -56,12 +56,12 @@ def tryRoi(X, Y, radio):
     ax.add_patch(rect)
     canvas_tkagg1.draw()
 
-
 def modeloT2(TE, S0, T2):
-    return S0 * np.exp(-TE / T2)
+    #El C es el absolute bias.
+    return C + S0 * np.exp(-TE / T2)
 
 def calcT2mapMC(X, Y, radio):
-    global file_path
+    global file_path, C
     
     listaTE = [];
     sumas_intensidades = [];
@@ -88,6 +88,7 @@ def calcT2mapMC(X, Y, radio):
     bounds = ([10, 10], [20, 500])
 
     # Valores iniciales de ST y T2.
+    C = np.min(sumas_intensidades)
     # Estimación de S0 como el valor máximo de la señal
     S0_estimado = np.max(sumas_intensidades)
     # Encuentra el TE donde la señal es aproximadamente 1/e del valor máximo

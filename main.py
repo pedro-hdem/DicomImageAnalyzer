@@ -17,7 +17,10 @@ def ejecutar_method(method):
         ruta_al_archivo = 'methods/mri/T2.py'
         subprocess.run(['python', ruta_al_archivo])
     if (method == 'T1IR'):
-        ruta_al_archivo = 'method/mri/T1.py'
+        ruta_al_archivo = 'methods/mri/T1.py'
+        subprocess.run(['python', ruta_al_archivo])
+    if (method == 'CTHU'):
+        ruta_al_archivo = 'methods/ct/cthu.py'
         subprocess.run(['python', ruta_al_archivo])
         
 def cargar_textos(ruta):
@@ -68,7 +71,7 @@ cargar_MRI2.pack()
 label2 = tk.Label(frame1, text="\nCT", font=("Helvetica", 11))
 label2.pack()
 
-cargar_CT1 = tk.Button(frame1, text="Cálcular HU", command=lambda: ejecutar_method('T1IR'))
+cargar_CT1 = tk.Button(frame1, text="Cálcular HU", command=lambda: ejecutar_method('CTHU'))
 cargar_CT1.bind("<Enter>", lambda event, m='CTHU': mostrar_info(m))
 cargar_CT1.bind("<Leave>", lambda event: ocultar_info())
 cargar_CT1.pack()
