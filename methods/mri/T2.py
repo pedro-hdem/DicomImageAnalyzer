@@ -98,12 +98,12 @@ def calcT2mapMC(X, Y, radio):
     # Ajuste de mínimos cuadrados
     popt, pcov = curve_fit(modeloT2, listaTE, sumas_intensidades, p0=p0, bounds=bounds)
     ST_opt, T2_opt = popt
-    print(f"ST optimizado: {ST_opt}, T2 optimizado: {T2_opt} ms")
+    #print(f"ST optimizado: {ST_opt}, T2 optimizado: {T2_opt} ms")
 
     # Cálculo de desviación estándar
     perr = np.sqrt(np.diag(pcov))
-    print("Desviación estándar de ST:", perr[0])
-    print("Desviación estándar de T2:", perr[1])
+    #print("Desviación estándar de ST:", perr[0])
+    #print("Desviación estándar de T2:", perr[1])
 
     # Graficar datos y ajuste
     ax2.clear()
@@ -112,7 +112,7 @@ def calcT2mapMC(X, Y, radio):
     S_fit = modeloT2(TI_fit, *popt)
     ax2.plot(TI_fit, S_fit, label='Ajuste', color='red')
     plt.title('Ajuste de Señal: σ(T2): ' + str(round(perr[1],2)) + '\nT2: '+str(round(T2_opt,4))+'ms');
-    plt.xlabel('TI')
+    plt.xlabel('TR')
     plt.ylabel('Señal')
     canvas_tkagg2.draw()
 

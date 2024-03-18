@@ -103,12 +103,12 @@ def calcT1IR(X, Y, radio):
     # Ajuste de mínimos cuadrados
     popt, pcov = curve_fit(modeloIR, listaTI, sumas_intensidades, p0=p0, bounds=bounds)
     S0_opt, T1_opt = popt
-    print(f"S0 optimizado: {S0_opt}, T1 optimizado: {T1_opt} ms")
+    #print(f"S0 optimizado: {S0_opt}, T1 optimizado: {T1_opt} ms")
 
     # Cálculo de desviación estándar
     perr = np.sqrt(np.diag(pcov))
-    print("Desviación estándar de S0:", perr[0])
-    print("Desviación estándar de T1:", perr[1])
+    #print("Desviación estándar de S0:", perr[0])
+    #print("Desviación estándar de T1:", perr[1])
 
     # Graficar datos y ajuste
     ax2.clear()
