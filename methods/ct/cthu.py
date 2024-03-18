@@ -76,7 +76,9 @@ def calcHU(X, Y, radio):
 
     suma_valores = np.mean(roi)
 
-    label3.config(text='\n'+str(round(suma_valores,2)))
+    valorHU = suma_valores + img.RescaleIntercept;
+
+    label3.config(text='\n'+str(round(valorHU,2)))
 
 # Ventana para métodos
 ventanaMetodos = tk.Tk()
